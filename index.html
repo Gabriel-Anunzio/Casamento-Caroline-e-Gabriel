@@ -584,6 +584,41 @@
   #copyStatus{font-size:8px!important;margin-top:2px!important}
 }
 </style>
+<style id="mobileSafariFixes">
+/* Áreas seguras e unidades estáveis no Safari/iOS */
+html,body{min-height:100%;min-height:100dvh;overscroll-behavior:none}
+@supports(-webkit-touch-callout:none){html,body{height:100%;height:100dvh}}
+@media(max-width:760px){
+ .stage{height:100vh;height:100dvh;max-height:none}
+ .book-shell{height:100%;min-height:0}
+ .page-scroll{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+ .mobile-fold-next{width:138px!important;height:158px!important;z-index:19!important}
+ .mobile-fold-next:before{width:67px!important;height:67px!important;background:linear-gradient(139deg,transparent 0 47%,#faf9ed 48%,#dfe7d6 78%,#afbf9f 100%)!important;filter:drop-shadow(-4px -5px 6px #344b3639)!important}
+ .curl-hint{position:absolute!important;right:19px!important;bottom:27px!important;z-index:21!important;pointer-events:none!important;font:700 10px/1.25 var(--sans)!important;letter-spacing:.08em!important;color:#506549!important;transform:rotate(-32deg)!important;background:#f7f8eac9;padding:4px 7px;border-radius:4px}
+ .page-content{box-sizing:border-box;min-height:100%;min-width:0}
+ .count-section .page-content{display:flex;flex-direction:column;align-items:center;justify-content:flex-start!important;overflow:visible!important;transform-origin:top center}
+ .count-section .page-scroll{overflow:hidden!important}
+ .guest-results{max-height:none!important;overflow:visible!important;scrollbar-width:none!important}
+ .guest-family{padding:7px 10px!important;margin-bottom:3px!important}
+ .guest-family-sub{margin:2px 0 4px!important}
+ .guest-member{padding:4px 0!important}
+ .guest-status{padding:5px!important}
+ .guest-send{margin-top:6px!important}
+ .guest-rsvp .closing{margin-top:6px!important}
+}
+@media(max-width:400px){
+ .count-section .page-content{padding:8px 12px 7px!important}
+ .count-section #countHeading{font-size:21px!important;margin-bottom:4px!important}
+ .count-intro{margin-bottom:2px!important}
+ .count-section .countdown{margin-bottom:5px!important}
+ .countdown-note{font-size:10px!important;margin-bottom:5px!important}
+ .guest-rsvp>.section-title{font-size:25px!important}
+ .guest-label{font-size:11px!important}
+ .guest-search-control{height:36px!important}
+ .guest-family h3{font-size:17px!important}
+ .guest-member-name{font-size:13px!important}
+}
+</style>
 </head>
 <body class="sealed">
 <svg aria-hidden="true" class="svg-defs" xmlns="http://www.w3.org/2000/svg">
@@ -677,7 +712,7 @@
 <svg aria-hidden="true" class="mobile-curl-svg" id="paperCurl" xmlns="http://www.w3.org/2000/svg"><defs><lineargradient gradientunits="userSpaceOnUse" id="paperShade"><stop offset="0" stop-color="#b7bca9"></stop><stop offset=".055" stop-color="#e4e6d9"></stop><stop offset=".19" stop-color="#fffef7"></stop><stop offset=".45" stop-color="#fbfaf1"></stop><stop offset=".85" stop-color="#f2f2e7"></stop><stop offset="1" stop-color="#e5e9dc"></stop></lineargradient><filter height="170%" id="softCurlShadow" width="160%" x="-30%" y="-30%"><fegaussianblur stddeviation="7"></fegaussianblur></filter><pattern height="9" id="paperFibers" patternunits="userSpaceOnUse" width="7"><path d="M.5 2h1M4 6h1M2 8h.6" opacity=".17" stroke="#788166" stroke-width=".45"></path></pattern><clippath id="paperBackClip"><path id="backClipPath"></path></clippath></defs><path fill="#344529" filter="url(#softCurlShadow)" id="curlShadow" opacity=".14"></path><path fill="url(#paperShade)" id="curlPaper" stroke="#fdfdf6" stroke-width=".6"></path><path fill="url(#paperFibers)" id="curlTexture"></path><text clip-path="url(#paperBackClip)" fill="#96a384" font-family="Cormorant Garamond, Georgia, serif" font-size="58" font-style="italic" id="curlWatermark" opacity=".1" text-anchor="middle">C &amp; G</text><path fill="none" id="curlEdge" stroke="#9ca78b" stroke-opacity=".3" stroke-width=".65"></path></svg>
 <nav aria-label="Folhear as páginas do convite" class="mobile-paper-controls">
 <button aria-label="Voltar à página anterior" class="mobile-back" hidden="" id="mobileBack" type="button">VOLTAR</button>
-<span aria-hidden="true" class="curl-hint" id="curlHint">PUXE O CANTO<br/>PARA CIMA</span>
+<span aria-hidden="true" class="curl-hint" id="curlHint">PUXE AQUI</span>
 <button aria-label="Puxe o canto inferior direito da folha para cima para virar a página" class="mobile-fold-next" id="mobileNext" type="button"></button>
 </nav>
 </main>
@@ -1091,16 +1126,40 @@ $('calendarLink').href = 'https://calendar.google.com/calendar/render?' + new UR
   location: venue, details: 'Celebre conosco! Início às 13h30 (horário de São Paulo). O término no calendário é estimado.'
 });
 $('maps').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(venue);
-$('copyAddress').addEventListener('click', async () => {
-  let copied = false;
-  try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(venue); copied = true; } } catch (_) {}
+$('copyAddress').addEventListener('click', () => {
   const fallback = $('addressFallback');
-  if (!copied) {
-    fallback.value = venue; fallback.hidden = false; fallback.focus(); fallback.select();
-    try { copied = document.execCommand('copy'); } catch (_) {}
+  const status = $('copyStatus');
+  fallback.hidden = false;
+  fallback.value = venue;
+  // O caminho síncrono é mais confiável no Safari/iOS, onde o gesto de usuário pode expirar após await.
+  fallback.style.position = 'fixed';
+  fallback.style.opacity = '0.01';
+  fallback.style.left = '0';
+  fallback.style.top = '0';
+  fallback.focus();
+  fallback.select();
+  fallback.setSelectionRange(0, fallback.value.length);
+  let copied = false;
+  try { copied = document.execCommand('copy'); } catch (error) {}
+  if (copied) {
+    fallback.hidden = true;
+    fallback.style.position = '';
+    fallback.style.opacity = '';
+    fallback.style.left = '';
+    fallback.style.top = '';
+    status.textContent = 'Endereço copiado!';
+  } else if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(venue).then(() => {
+      fallback.hidden = true;
+      status.textContent = 'Endereço copiado!';
+    }).catch(() => {
+      fallback.style.position = ''; fallback.style.opacity = '';
+      status.textContent = 'Selecione o endereço abaixo e copie.';
+    });
+  } else {
+    fallback.style.position = ''; fallback.style.opacity = '';
+    status.textContent = 'Selecione o endereço abaixo e copie.';
   }
-  if (copied) { fallback.hidden = true; $('copyStatus').textContent = 'Endereço copiado com carinho!'; $('copyAddress').focus({preventScroll: true}); }
-  else { $('copyStatus').textContent = 'Selecione o endereço abaixo e copie.'; }
 });
 Object.entries(PHOTOS).forEach(([key, src]) => {
   if (!src) return;
@@ -1209,5 +1268,57 @@ output.addEventListener('change',event=>{const t=event.target;if(!t.matches('.gu
 output.addEventListener('click',event=>{const button=event.target.closest('.guest-send');if(!button)return;const group=byGroup.get(button.dataset.group);if(!group)return;const familyName=group.label.replace(/\s*[—-]\s*individual/i,'').trim();const familyLine=group.label.includes('— Individual')?group.members[0].displayName:'Família '+familyName;const lines=['Confirmação de Presença - Casamento Caroline & Gabriel','','Com carinho, enviamos nossas respostas para o grande dia de vocês!','',familyLine,...group.members.map(m=>{const status=statuses[m.id]||'Pendente';return m.displayName+' - '+status;}),'','Confirmação enviada pelo convite digital.'];window.open('https://wa.me/5511913625176?text='+encodeURIComponent(lines.join('\n')),'_blank','noopener,noreferrer');});
 render();
 })();
-</script></body>
+</script><script id="gestureAndViewportFixes">
+(()=>{
+  const invitation=document.getElementById('invitation');
+  let touchStart=null;
+  const excludes='input,select,button,a,textarea,label,.guest-results,.guest-family';
+  invitation.addEventListener('touchstart',e=>{
+    if(e.touches.length!==1||e.target.closest(excludes)){touchStart=null;return;}
+    touchStart={x:e.touches[0].clientX,y:e.touches[0].clientY};
+  },{passive:true});
+  invitation.addEventListener('touchend',e=>{
+    if(!touchStart||!e.changedTouches.length)return;
+    const dx=e.changedTouches[0].clientX-touchStart.x;
+    const dy=e.changedTouches[0].clientY-touchStart.y;
+    touchStart=null;
+    if(Math.abs(dx)<65||Math.abs(dx)<Math.abs(dy)*1.3)return;
+    const selector=dx<0?'#mobileNext':'#mobileBack';
+    const control=document.querySelector(selector);
+    if(control&&!control.hidden)control.click();
+  },{passive:true});
+  function fitLastPage(){
+    const page=document.querySelector('.book-page.count-section');
+    if(!page)return;
+    const viewport=page.querySelector('.page-scroll');
+    const content=page.querySelector('.page-content');
+    if(!viewport||!content)return;
+    content.style.transform='';content.style.width='100%';
+    if(window.innerWidth>760)return;
+    const available=viewport.clientHeight;
+    if(available<100)return;
+    const required=content.scrollHeight;
+    let scale=Math.min(1,(available-6)/required);
+    if(scale<1){
+      // Recalcula após alargar o layout, para garantir que os nomes e a família caibam.
+      content.style.width=(100/scale)+'%';
+      content.style.marginLeft='auto';content.style.marginRight='auto';
+      const adjusted=content.scrollHeight;
+      scale=Math.min(scale,(available-6)/adjusted);
+      content.style.width=(100/scale)+'%';
+      content.style.transform='scale('+scale+')';
+    }
+  }
+  let raf=0;
+  const schedule=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(fitLastPage)};
+  window.addEventListener('resize',schedule,{passive:true});
+  window.addEventListener('orientationchange',schedule,{passive:true});
+  if(window.visualViewport)window.visualViewport.addEventListener('resize',schedule,{passive:true});
+  const list=document.getElementById('guestResults');
+  if(list)new MutationObserver(schedule).observe(list,{childList:true,subtree:true,characterData:true});
+  document.fonts?.ready?.then(schedule);
+  schedule();
+})();
+</script>
+</body>
 </html>
